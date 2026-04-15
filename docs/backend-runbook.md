@@ -1,4 +1,7 @@
+
 # Backend Runbook
+
+The dashboard UI is a consumer of the backend API and uses strict parameter-based caching. For stable results, set CPU governor to `performance` and minimize background load.
 
 This runbook is the end-to-end backend operations guide.
 

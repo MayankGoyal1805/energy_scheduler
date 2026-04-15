@@ -1,4 +1,7 @@
+
 # Backend API
+
+The dashboard UI consumes this API for all benchmarking, comparison, and results. Only real schedulers are shown as candidates in the UI. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Overview
 

@@ -1,4 +1,7 @@
+
 # Operations Checklist
+
+The dashboard UI and backend both use strict parameter-based caching. For stable results, set CPU governor to `performance` and minimize background load.
 
 This file is the exact command plan to finish backend validation and unblock real energy measurements.
 

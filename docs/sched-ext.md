@@ -1,4 +1,7 @@
+
 # Real Custom Scheduling With `sched_ext`
+
+The dashboard UI only shows real sched_ext schedulers as candidates (not simulated/model schedulers). For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why `sched_ext`
 

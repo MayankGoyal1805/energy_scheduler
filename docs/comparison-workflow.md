@@ -1,4 +1,7 @@
+
 # Comparison Workflow
+
+The dashboard UI comparison section uses only relevant charts (no long tables) and only real schedulers as candidates. Simulated schedulers are for model/algorithm comparison only. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why We Added `compare`
 

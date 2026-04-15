@@ -1,4 +1,7 @@
+
 # CLI Reference
+
+The dashboard UI is a consumer of the same backend logic as the CLI. Only real schedulers are shown as candidates in the UI. For stable results, set CPU governor to `performance` and minimize background load.
 
 This document explains every CLI command and option in detail.
 

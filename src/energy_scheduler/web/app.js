@@ -369,16 +369,19 @@ function gatherMasterData(responses) {
   renderMasterCharts(allRows);
 }
 
-async function doFetchMedian(queryBody) {
-  let qResp = await fetch("/median-runs/query", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(queryBody)
-  });
-  if (qResp.ok) {
-     let qData = await qResp.json();
-     if(qData && Object.keys(qData).length > 0 && qData.rows && qData.rows.length > 0) {
-       return qData;
-     }
+async function doFetchMedian(queryBody, options = {}) {
+  const forceRefresh = options.forceRefresh === true;
+  if (!forceRefresh) {
+    let qResp = await fetch("/median-runs/query", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(queryBody)
+    });
+    if (qResp.ok) {
+       let qData = await qResp.json();
+       if(qData && Object.keys(qData).length > 0 && qData.rows && qData.rows.length > 0) {
+         return qData;
+       }
+    }
   }
   let jobResp = await fetch("/jobs/median-board", {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -435,6 +438,7 @@ async function runDashboard() {
 }
 
 async function runSingleBlock(wl) {
+  readStateFromDOM();
   const tEl = document.getElementById(`tasks-${wl}`);
   const tsEl = document.getElementById(`tasksec-${wl}`);
   const t = parseInt(tEl?.value || "8", 10);
@@ -452,7 +456,7 @@ async function runSingleBlock(wl) {
     perf_stat: false
   };
   try {
-    const finalData = await doFetchMedian(queryBody);
+    const finalData = await doFetchMedian(queryBody, { forceRefresh: true });
     globalBlockResponses[wl] = finalData;
     processBlockData(wl, finalData);
     gatherMasterData(globalBlockResponses);

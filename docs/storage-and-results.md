@@ -1,4 +1,7 @@
+
 # Storage and Results Model
+
+The dashboard UI and backend both use strict parameter-based caching: identical runs are never repeated. For stable results, set CPU governor to `performance` and minimize background load.
 
 This document explains exactly what is stored, how queries work, and how to interpret results.
 

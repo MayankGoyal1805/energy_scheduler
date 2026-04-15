@@ -1,4 +1,7 @@
+
 # Scheduler Behavior and Energy Analysis
+
+The dashboard UI leaderboard and comparison logic use only real schedulers as candidates. Simulated schedulers are for model/algorithm analysis only. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Scope and Ground Truth
 
@@ -186,22 +189,21 @@ So a tuned profile is not automatically better; it is profile and workload depen
 3. Some third-party sched_ext schedulers can beat baseline on energy in specific scenarios.
 4. No third-party scheduler here should be labeled as our custom scheduler implementation.
 
-## What Remains Before UI Work
+## Current Status Snapshot
 
-Core backend status for UI phase:
+Current project state:
 
-1. CLI benchmark and median-board flows are functional.
+1. CLI benchmark, compare, search-energy, and median-board flows are functional.
 2. API endpoints for run/compare/results/median-board and async jobs are present.
-3. Progress logging and failure diagnostics are available for long median-board runs.
-4. RAPL collection works with current host permissions.
+3. Dashboard UI is active and consumes the same backend logic.
+4. Progress logging and failure diagnostics are available for long median-board runs.
+5. RAPL collection is available when host permissions allow access.
 
-Recommended final backend cleanup before UI (optional but useful):
+Recommended next technical milestones:
 
-1. Add a compact API schema specifically for leaderboard chart consumption.
-2. Add a small endpoint or field for benchmark metadata (kernel/governor/scheduler list snapshot).
-3. Add one reproducibility note in docs for CPU governor and background load control.
-
-If you skip the optional items above, the backend is still sufficient to start UI work.
+1. Expand benchmark metadata capture (kernel/governor/background load snapshot) for stronger reproducibility reporting.
+2. Run larger-trial median studies for tighter confidence in cross-workflow ranking.
+3. Implement custom sched_ext BPF scheduler approximating dynamic-quantum policy and evaluate with the same protocol.
 
 ## Source Notes
 
@@ -210,3 +212,169 @@ Behavior and classification in this document are based on:
 - observed benchmark outputs in this repository workflow
 - scheduler help text and option semantics available via local `scx_* --help`
 - Linux scheduler and sched_ext documentation references already listed in project docs
+
+## How To Present This As "Your Project"
+
+Use this framing consistently:
+
+1. Project identity:
+  - "Energy-Aware CPU Scheduling Algorithm with Dynamic Quantum Adjustment"
+2. Engineering reality:
+  - today we have two validated tracks:
+    - algorithm track: `custom_simulated` (our policy model)
+    - kernel track: `custom_sched_ext` (real Linux switching experiments)
+3. Main contribution now:
+  - a reproducible benchmark platform that measures energy/performance tradeoffs and identifies which real sched_ext policies best match our objective profile
+4. Main contribution next:
+  - convert validated policy insights into a custom BPF sched_ext implementation
+
+This lets you claim a real, defensible project now without overclaiming custom-kernel completion.
+
+## The Core Storyline (Use This In Demos)
+
+Present in this exact sequence:
+
+1. Problem:
+  - default scheduling optimizes general fairness/latency, not explicit energy-delay goals for your mixed workload profile
+2. Hypothesis:
+  - dynamic quantum adjustment can improve energy-delay behavior by adapting slices to task behavior/intensity
+3. Method:
+  - evaluate across realistic mixed workloads using RAPL joules + runtime + variability-aware medians
+4. Evidence:
+  - no single scheduler wins every workload; median-based ranking reveals robust candidates under noise
+5. Decision:
+  - `scx_bpfland` is currently the best practical candidate for your objective in median scoring, while still acknowledging workflow-level variance
+6. Roadmap:
+  - tune/ablate bpfland-style controls, then implement custom sched_ext policy approximating your dynamic-quantum model
+
+## How To Handle "Mixed Bag" Results (Important)
+
+Do not present mixed results as failure. Present them as expected behavior in multi-objective systems.
+
+Use this line:
+
+- "In scheduler research, per-workload winners vary. Robustness comes from repeated-trial medians, variance tracking, and transparent tradeoff analysis, not single-run universal winners."
+
+Then show why medians matter:
+
+- outliers from thermal spikes/background load are de-emphasized
+- central tendency across repeated trials is more stable
+- scheduler selection becomes evidence-based, not anecdotal
+
+## How To Position bpfland Specifically
+
+Use this careful claim set:
+
+1. What you can say:
+  - `scx_bpfland` is currently the strongest practical candidate in your median leaderboard for the target benchmark profile
+  - it exhibits dynamic slice behavior and tunable controls aligned with your project objective space
+  - it does not win every workflow, but it offers the best robust median balance in current data
+2. What you should not say:
+  - "bpfland is universally best"
+  - "bpfland is our custom scheduler"
+3. Why this is still strong:
+  - your project is about energy-aware dynamic scheduling methodology and implementation path, not only about naming one universal winner
+
+Suggested sentence for slides:
+
+- "Among tested real sched_ext policies, bpfland is our best median-score proxy for the project objective, and our custom policy implementation will build on these validated dynamics."
+
+## What You Must Mention During Presentation (Detailed Checklist)
+
+### 1) Objective Definition
+
+- Primary: lower package energy (RAPL joules)
+- Secondary: avoid unacceptable runtime regressions
+- Tertiary: maintain robustness across mixed workloads
+
+### 2) Experimental Controls
+
+- fixed task/workload parameters per comparison
+- repeated trials and median scoring
+- same machine/kernel configuration
+- documented candidate list and settings
+- note whether `perf_stat` is enabled
+
+### 3) Metrics and Their Meaning
+
+- `median_energy_j`: primary energy outcome
+- `median_runtime_s`: performance cost/benefit
+- `median_delta_percent`: relative to baseline (`linux_default`)
+- failed-trial count: operational reliability signal
+
+### 4) Why Median Leaderboard Is The Right Primary View
+
+- mitigates run-to-run noise
+- better than best-case snapshots
+- supports practical deployment decisions
+
+### 5) Scheduler Interpretation Boundaries
+
+- third-party sched_ext schedulers are comparative references
+- `custom_simulated` is policy-model validation, not kernel proof
+- real kernel proof requires custom BPF sched_ext policy implementation
+
+### 6) Current Best Practical Outcome
+
+- bpfland leads as median-score candidate in current benchmark profile
+- winner variability across workflows is expected and explicitly tracked
+
+### 7) Future Work (Concrete)
+
+- parameter sweep around bpfland-like controls (slice/throttle/domain)
+- ablation studies for dynamic-quantum factors
+- implement custom sched_ext BPF scheduler approximating model policy
+- validate against same median-board protocol
+
+## Suggested Slide Deck Structure (10-12 Slides)
+
+1. Title + problem statement
+2. Why energy-aware scheduling matters (energy vs runtime tradeoff)
+3. Architecture (model track + kernel track)
+4. Methodology (workloads, trials, medians, metrics)
+5. Candidate schedulers and classification matrix
+6. Aggregate median results (energy/runtime)
+7. Workflow-level variability view
+8. Why bpfland is current best practical candidate
+9. Limits and non-claims (strict honesty slide)
+10. Roadmap to custom BPF implementation
+11. Key takeaways
+12. Q&A backup: metric definitions + reproducibility settings
+
+## Ready-To-Use Talking Points
+
+Opening:
+
+- "This project delivers a reproducible platform for energy-aware scheduler evaluation and a validated path from policy model to real kernel implementation."
+
+When asked "Why not one clear winner?":
+
+- "Schedulers are multi-objective and workload-sensitive. Our decision criterion is robust median behavior across repeated trials, where bpfland currently leads for our target profile."
+
+When asked "Is this your scheduler yet?":
+
+- "Our algorithm is validated in simulation and our kernel pipeline is validated with sched_ext. The next milestone is custom BPF policy implementation using the same evaluation harness."
+
+Closing:
+
+- "The project already provides measurable, reproducible evidence and a concrete implementation roadmap; it is not just comparison, it is a full engineering pipeline from hypothesis to deployable kernel policy."
+
+## Presentation Risk Management (What Can Hurt Credibility)
+
+Avoid these mistakes:
+
+1. Claiming universal winner status for any scheduler
+2. Mixing simulated energy units with real joules
+3. Ignoring variability/failed-trial counts
+4. Presenting single-run screenshots as final evidence
+
+Always include:
+
+1. Baseline comparison against `linux_default`
+2. Trial count and median rationale
+3. Explicit distinction between model vs kernel execution
+4. Reproducibility controls (governor/background load)
+
+## Final Positioning Statement (Use Verbatim If Needed)
+
+"Energy-Aware CPU Scheduling Algorithm with Dynamic Quantum Adjustment is currently a two-layer project: a validated algorithm layer (`custom_simulated`) and a validated real-kernel experimentation layer (`custom_sched_ext`). Using repeated-trial median evaluation with RAPL energy and runtime tradeoffs, bpfland is our strongest practical candidate in the present profile, and these results directly guide the next step: implementing our own sched_ext BPF scheduler with dynamic quantum adjustment."
