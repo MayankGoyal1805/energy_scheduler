@@ -674,3 +674,197 @@ If someone says, "This is just comparing existing schedulers," answer:
 2. We validated both model and real-kernel tracks.
 3. We generated robust decision evidence with repeated-trial median methodology.
 4. This pipeline is exactly what is required to implement and verify a custom scheduler rigorously, and that is the next direct step.
+
+---
+
+## 21. Exact implementation deep dive (sched_ext + other complex parts)
+
+This section is intentionally code-accurate so you can explain exactly what is implemented, not just conceptually what it should do.
+
+### 21.1 Exactly how `custom_sched_ext` is implemented
+
+Implementation is in sched_ext adapter (`SchedExtScheduler`) with explicit lifecycle methods:
+
+1. `prepare()`
+   - verifies `/sys/kernel/sched_ext` exists before doing anything
+   - runs `scxctl start --sched <name>`
+   - if start fails with "already running", falls back to `scxctl switch --sched <name>`
+   - supports optional scheduler args by passing `--args=<...>`
+   - stores command result metadata (return code, stdout, stderr)
+   - raises runtime error if activation still fails
+2. `cleanup()`
+   - only runs stop if scheduler was started
+   - runs `scxctl stop`
+   - stores stop command metadata
+3. `metadata()`
+   - emits structured data including selected scheduler, optional args, and start/stop command results
+
+Why this is robust:
+
+1. scheduler activation failure is explicit and surfaces as run failure
+2. cleanup is separate and always reachable from runner `finally`
+3. "already running" systems do not crash immediately; they attempt a safe switch path
+
+### 21.2 Exactly how safety is guaranteed in the runner
+
+Runner flow is:
+
+1. build scheduler object from benchmark settings
+2. call `scheduler.prepare()`
+3. start collectors
+4. execute workload path (real or simulated)
+5. in `finally`:
+   - stop all collectors
+   - call `scheduler.cleanup()`
+   - append sched_ext metadata collector when applicable
+
+Important safety property:
+
+Even if workload or collector path throws, cleanup still executes because of `finally`.
+
+### 21.3 Exactly how simulated scheduling is implemented
+
+`custom_simulated` does online iterative simulation with `_TaskState` objects.
+
+Per-step logic:
+
+1. build ready list of tasks with remaining CPU
+2. sort using `_ranking_key(...)`
+3. compute quantum with `_compute_quantum_s(...)`
+4. run simulated clock for `min(quantum, remaining)`
+5. append schedule event
+6. repeat until all task CPU work is complete
+
+Scoring details:
+
+1. normal mode uses EDP-style priority-energy score:
+   - score ≈ `(energy_factor^2) / priority_factor`
+2. overutilized mode (average CPU ratio >= threshold) disables energy penalty to protect throughput/fairness
+
+Quantum details:
+
+1. formula uses base quantum, priority factor, behavior factor, and energy factor
+2. clamped between floor and ceiling bounds (`>= 0.003`, `<= 0.05`, and not above remaining work)
+
+Output details:
+
+1. per-task timings
+2. full schedule event timeline
+3. context switch estimate (`events - 1`)
+4. estimated energy units from event duration × event energy factor
+
+### 21.4 Exactly how median-board is computed
+
+`run_median_leaderboard(...)` is not a single-shot compare. It is repeated-trial aggregation.
+
+For each trial:
+
+1. run baseline (`linux_default`)
+2. require baseline RAPL package joules
+3. for each candidate scheduler:
+   - run candidate via `custom_sched_ext`
+   - require candidate RAPL package joules
+   - record runtime, energy, delta_j, and delta_percent vs that trial baseline
+
+Failure behavior:
+
+1. if baseline fails/missing energy, all candidates for that trial are marked failed
+2. candidate failures are tracked independently
+3. top failure reasons are aggregated and returned in payload
+
+Final output behavior:
+
+1. medians are computed per scheduler from successful samples
+2. rows are sorted by median energy (baseline first, then candidates with data, then missing)
+3. output includes sample count and failed trial count for reliability context
+
+### 21.5 Exactly how median result caching works
+
+Caching key for `median_runs` lookup is exact parameter match on:
+
+1. workload_name
+2. tasks
+3. task_seconds
+4. repetitions
+5. trials
+6. candidates (stored as sorted comma-joined string)
+7. perf_stat flag
+
+Behavior:
+
+1. API `POST /median-runs/query` returns cached result if exact match exists
+2. otherwise API/job path computes new median-board and may save it
+
+Why sorting candidates matters:
+
+`cake,lavd` and `lavd,cake` become identical cache identity after sorting, preventing duplicate cache entries for same candidate set.
+
+### 21.6 Exactly how async jobs are implemented
+
+Async execution in API uses:
+
+1. in-memory jobs dictionary with lock
+2. `ThreadPoolExecutor(max_workers=2)`
+3. status lifecycle: `queued -> running -> completed/failed`
+4. timestamped progress logs appended by callback
+
+Exposed endpoints:
+
+1. submit job endpoint (returns `job_id` immediately)
+2. status endpoint returns state/result
+3. log endpoint returns paginated log slices (`since`, `limit`)
+
+### 21.7 Exactly how perf-stat collector works
+
+Implementation behavior:
+
+1. on start:
+   - resolves `perf` path
+   - launches `perf stat -x , -e <events> -p <current_process_pid>`
+2. on stop:
+   - sends SIGINT to finalize perf output
+   - parses CSV-like stderr lines into structured numeric metrics
+   - handles `<not supported>` and `<not counted>` status cases
+3. failure semantics:
+   - returns `available=0` with reason if command missing, startup failed, or output unparsable
+
+Important limitation to state clearly:
+
+It currently attaches to benchmark process window. A stricter future mode can wrap workload process-tree more tightly.
+
+### 21.8 Exactly how doctor checks are implemented
+
+`doctor` composes checks for:
+
+1. kernel version (`uname -r`)
+2. sched_ext sysfs presence
+3. sched_ext state file readability
+4. tool presence (`scxctl`, `bpftool`, `perf`)
+5. `scxctl list` execution
+6. first readable RAPL path probe
+
+Output behavior:
+
+1. table output for humans
+2. JSON output for API/automation
+
+### 21.9 Exactly how UI "Update Target" rerun behavior is implemented
+
+Per-workload update path:
+
+1. block reads current tasks/task_seconds and global state
+2. calls median fetch helper in force-refresh mode
+3. force-refresh skips cached query path and always submits median-board job
+4. updates block charts/table and then recomputes aggregate charts
+
+This ensures "Update Target" can be used for explicit reruns instead of silently reusing cache.
+
+### 21.10 What to say when asked "what is actually complicated here?"
+
+Use this concise answer:
+
+1. safe scheduler lifecycle switching with fallback and cleanup guarantees
+2. robust repeated-trial median aggregation with failure accounting
+3. exact-parameter caching that avoids recomputation while preserving correctness
+4. async benchmark execution with live progress logs
+5. metric collection pipelines that degrade gracefully under permission/tool constraints
