@@ -1,0 +1,20 @@
+[project]
+name = "energy-scheduler"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "MayankGoyal1805", email = "178543798+MayankGoyal1805@users.noreply.github.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn>=0.32.0,<1.0.0",
+]
+
+[project.scripts]
+energy-scheduler = "energy_scheduler:main"
+
+[build-system]
+requires = ["uv_build>=0.11.5,<0.12.0"]
+build-backend = "uv_build"

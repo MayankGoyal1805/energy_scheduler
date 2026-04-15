@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Energy Scheduler Dashboard</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-content">
+        <h1>Energy Scheduler Dashboard</h1>
+        <p class="subtitle">Artificial Analysis Style Workflow Viewer</p>
+      </div>
+    </header>
+
+    <main class="app-layout">
+      <!-- Global Configuration -->
+      <section class="global-config panel">
+        <h2>Global Configuration</h2>
+        <div class="config-grid">
+          <div class="input-group">
+            <label for="globalTrials">Trials (Median Sampling)</label>
+            <input id="globalTrials" type="number" min="1" value="5" />
+          </div>
+          <div class="input-group">
+            <label for="globalRepetitions">Internal Repetitions</label>
+            <input id="globalRepetitions" type="number" min="1" value="3" />
+          </div>
+        </div>
+
+        <div class="multi-select-row">
+          <div class="input-group">
+            <label>Candidates</label>
+            <div id="candidateSelectors" class="checkbox-group grid-2col"></div>
+          </div>
+          <div class="input-group">
+            <label>Workloads</label>
+            <div id="workloadSelectors" class="checkbox-group grid-2col"></div>
+          </div>
+        </div>
+        
+        <div class="action-row">
+          <button id="runDashboardBtn" class="primary-btn run-btn">Run Dashboard</button>
+          <button id="stopPolling" class="secondary-btn">Stop Logs</button>
+          <span class="status-indicator">Status: <span id="globalStatus">idle</span></span>
+        </div>
+      </section>
+
+      <!-- Aggregate Comparison -->
+      <section class="aggregate-comparison panel">
+        <h2>Aggregate Comparison</h2>
+        <div class="chart-container two-col">
+          <div id="masterParetoChart" class="chart master-chart"></div>
+          <div id="masterBarChart" class="chart master-chart"></div>
+        </div>
+        <p class="comparison-note">
+          Aggregate view shows chart-only comparison across selected workloads.
+        </p>
+      </section>
+
+      <!-- Individual Workflow Blocks container -->
+      <div id="workflowBlocks" class="blocks-container"></div>
+
+      <!-- Logs -->
+      <section class="panel logs-panel">
+        <h2>Execution Logs <span id="logJobId" class="job-id-text"></span></h2>
+        <pre id="logStream">Idle</pre>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>
