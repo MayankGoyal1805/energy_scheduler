@@ -1,4 +1,9 @@
+
 # Workloads
+
+The dashboard UI and backend both support all workload types described here. Only real schedulers are shown as candidates in the UI; simulated schedulers are for algorithm/model comparison only.
+
+**Reproducibility:** For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why We Need More Than One Workload Type
 

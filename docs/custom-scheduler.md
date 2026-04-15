@@ -1,4 +1,7 @@
+
 # Custom Simulated Scheduler
+
+The simulated scheduler (`custom_simulated`) is a Python model of our algorithm. It is not a real kernel scheduler and is not shown as a candidate in the dashboard UI. Use it for algorithm/model comparison only. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why We Added A Simulated Scheduler First
 

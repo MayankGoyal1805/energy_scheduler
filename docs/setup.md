@@ -1,79 +1,54 @@
+environment matches the declared configuration.
 # Setup Notes
 
-## Why We Configured `uv` First
+## Python Environment and Project Setup
 
-Before writing backend code, we need a stable Python workflow for the project.
+This project uses [`uv`](https://github.com/astral-sh/uv) for Python environment and dependency management. All commands and backend logic assume you are using the project-local `.venv` created by `uv`.
 
-We are using `uv` because:
+### Why `uv`?
+- Handles venv, dependencies, and running commands in one tool
+- Fast and simple for small team projects
+- Project-local config avoids permission issues in restricted environments
 
-- it handles virtual environments, dependencies, and running commands in one tool
-- it is fast
-- it keeps the Python workflow simple for a small team project
+### Common Setup Steps
+```bash
+uv venv
+uv sync
+uv run energy-scheduler doctor
+uv run energy-scheduler workloads
+```
 
-## The Problem We Hit
-
-When `uv` was first run in this workspace, it tried to create its cache under the default user cache
-directory:
-
-- `~/.cache/uv`
-
-In this environment, that path was not writable, so `uv` failed before doing useful work.
-
-That failure can look like a shell problem, but it is not really a `fish` vs `bash` issue. The real
-issue is filesystem permissions for the cache path.
-
-## The Fix
-
-We added a local `uv.toml` file with:
+### uv Cache Directory
+If you see errors about cache permissions, it is because `uv` by default tries to use `~/.cache/uv`, which may not be writable. This project sets a local cache in `uv.toml`:
 
 ```toml
 cache-dir = ".uv-cache"
 ```
 
-This tells `uv` to keep its cache inside the project directory, which is writable.
+This ensures all `uv` operations work regardless of shell or user home directory restrictions.
 
-## Why This Matters
+---
 
-This is a good example of a common engineering rule:
+## Backend and Dashboard UI
 
-- when a tool writes outside your project, that may fail in restricted environments
-- if the tool supports project-local configuration, use it
+- The backend provides all benchmarking, caching, and API logic (see [docs/architecture.md](architecture.md)).
+- The dashboard UI is a modern, responsive local webapp that consumes the backend API and visualizes results (see [README.md](../README.md)).
+- All results are cached—identical parameter runs are never repeated.
 
-By fixing this early, the rest of the project can use a predictable command flow:
+---
 
-```bash
-uv venv
-uv sync
-uv run energy-scheduler
-```
+## Reproducibility and Energy Measurement
 
-## What `uv venv` Does
+- For stable results, set your CPU governor to `performance` and minimize background load.
+- If RAPL energy readings are not available (permission denied), see [docs/ops-checklist.md](ops-checklist.md) for host-side fixes.
 
-`uv venv` creates a Python virtual environment, usually in `.venv/`.
+---
 
-That environment isolates:
+## Why We Document Decisions
 
-- the Python interpreter used by the project
-- installed dependencies
-- scripts we run for the backend
-
-This keeps the project reproducible and avoids depending on random packages from the system Python.
-
-## What `uv sync` Does
-
-`uv sync` reads the project metadata from `pyproject.toml`, resolves dependencies, and installs them
-into the project environment.
-
-Even if there are no extra dependencies yet, it is still the normal command to make sure the project
-environment matches the declared configuration.
-
-## Why We Are Writing This In `docs/`
-
-You said you want to learn properly while building. So the project will keep a parallel set of docs
-that explain:
-
-- what we built
-- why we built it that way
-- what tradeoffs we made
+This project keeps parallel docs explaining:
+- what was built
+- why it was built that way
+- what tradeoffs were made
 
 This file is the first example of that approach.

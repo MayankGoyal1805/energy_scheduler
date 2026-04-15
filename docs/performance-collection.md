@@ -1,4 +1,7 @@
+
 # Performance Collection
+
+The dashboard UI and backend both report all performance metrics described here. Only real schedulers are shown as candidates in the UI. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why We Need Performance Metrics
 

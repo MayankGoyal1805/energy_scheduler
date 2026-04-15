@@ -1,5 +1,23 @@
 # Backend Architecture
 
+The backend is designed for strict separation of concerns, reproducibility, and future extensibility. The dashboard UI is a local webapp that consumes the same backend logic and API, with all results strictly cached to avoid redundant runs.
+
+**Key design goals:**
+- All benchmarking, comparison, and result storage logic is backend-driven
+- The dashboard UI is a thin, modern layer on top of the backend API
+- Only real schedulers (no custom/simulated) are shown as candidates in the UI
+- All results are cached by parameter set—no redundant runs
+
+**Reproducibility:**
+- All runs are isolated in a project-local venv
+- Results are cached in SQLite by full parameter set
+- For stable results, set CPU governor to `performance` and minimize background load
+
+**Current status:**
+- Backend: complete (all endpoints, caching, collectors, sched_ext switching)
+- UI: complete (modern dashboard, strict candidate logic, chart-only comparison)
+- RAPL: permission fix may be required for real energy measurement (see [docs/ops-checklist.md](ops-checklist.md))
+
 ## Why We Started With the Backend Skeleton
 
 At this stage, building a UI would only hide missing design decisions. The project needs clear backend

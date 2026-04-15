@@ -1,4 +1,7 @@
+
 # Energy Collection With RAPL
+
+The dashboard UI and backend both report RAPL energy when available. If RAPL is not readable, see [docs/ops-checklist.md](ops-checklist.md) for host-side fixes. For stable results, set CPU governor to `performance` and minimize background load.
 
 ## Why Energy Collection Matters
 
